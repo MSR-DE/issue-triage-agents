@@ -1,0 +1,204 @@
+HTTP/1.1 200 OK
+Date: Thu, 01 Oct 2026 11:55:06 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 7761
+Cache-Control: private, max-age=60, s-maxage=60
+Vary: Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With
+ETag: "4fc9f2fb91f1d125ae59ff09a71aed65f4dc8c4d62ec322acd7267f544cbd61c"
+github-authentication-token-expiration: 2027-09-30 18:30:00 UTC
+X-GitHub-Media-Type: github.v3; format=json
+x-accepted-github-permissions: issues=read; pull_requests=read
+x-github-api-version-selected: 2022-11-28
+Access-Control-Expose-Headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning
+Access-Control-Allow-Origin: *
+Strict-Transport-Security: max-age=31536000; includeSubdomains; preload
+X-Frame-Options: deny
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Referrer-Policy: origin-when-cross-origin, strict-origin-when-cross-origin
+Content-Security-Policy: default-src 'none'
+Server: github.com
+X-RateLimit-Limit: 5000
+X-RateLimit-Remaining: 4989
+X-RateLimit-Reset: 1790856363
+X-RateLimit-Used: 11
+X-RateLimit-Resource: core
+X-GitHub-Request-Id: 4AF5:24C48C:4D6AD:50445:6ABE4A19
+x-github-edge-region: centralindia
+
+[
+  {
+    "id": 30585619460,
+    "node_id": "LE_lADOKbIFZc8AAAABPxuOjM8AAAAHHwuEBA",
+    "url": "https://api.github.com/repos/astral-sh/uv/issues/events/30585619460",
+    "actor": {
+      "login": "damonlynch",
+      "id": 1749868,
+      "node_id": "MDQ6VXNlcjE3NDk4Njg=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1749868?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/damonlynch",
+      "html_url": "https://github.com/damonlynch",
+      "followers_url": "https://api.github.com/users/damonlynch/followers",
+      "following_url": "https://api.github.com/users/damonlynch/following{/other_user}",
+      "gists_url": "https://api.github.com/users/damonlynch/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/damonlynch/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/damonlynch/subscriptions",
+      "organizations_url": "https://api.github.com/users/damonlynch/orgs",
+      "repos_url": "https://api.github.com/users/damonlynch/repos",
+      "events_url": "https://api.github.com/users/damonlynch/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/damonlynch/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "event": "labeled",
+    "commit_id": null,
+    "commit_url": null,
+    "created_at": "2026-09-04T22:31:15Z",
+    "label": {
+      "name": "bug",
+      "color": "d73a4a"
+    },
+    "intent": null,
+    "performed_via_github_app": null
+  },
+  {
+    "url": "https://api.github.com/repos/astral-sh/uv/issues/comments/5549196314",
+    "html_url": "https://github.com/astral-sh/uv/issues/21477#issuecomment-5549196314",
+    "issue_url": "https://api.github.com/repos/astral-sh/uv/issues/21477",
+    "id": 5549196314,
+    "node_id": "IC_kwDOKbIFZc8AAAABSsIEGg",
+    "user": {
+      "login": "zanieb",
+      "id": 2586601,
+      "node_id": "MDQ6VXNlcjI1ODY2MDE=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2586601?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/zanieb",
+      "html_url": "https://github.com/zanieb",
+      "followers_url": "https://api.github.com/users/zanieb/followers",
+      "following_url": "https://api.github.com/users/zanieb/following{/other_user}",
+      "gists_url": "https://api.github.com/users/zanieb/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/zanieb/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/zanieb/subscriptions",
+      "organizations_url": "https://api.github.com/users/zanieb/orgs",
+      "repos_url": "https://api.github.com/users/zanieb/repos",
+      "events_url": "https://api.github.com/users/zanieb/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/zanieb/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-09-05T03:58:59Z",
+    "updated_at": "2026-09-05T03:58:59Z",
+    "body": "I believe this is a duplicate of https://github.com/astral-sh/uv/issues/12639",
+    "author_association": "MEMBER",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/astral-sh/uv/issues/comments/5549196314/reactions",
+      "total_count": 1,
+      "+1": 1,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null,
+    "event": "commented",
+    "actor": {
+      "login": "zanieb",
+      "id": 2586601,
+      "node_id": "MDQ6VXNlcjI1ODY2MDE=",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2586601?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/zanieb",
+      "html_url": "https://github.com/zanieb",
+      "followers_url": "https://api.github.com/users/zanieb/followers",
+      "following_url": "https://api.github.com/users/zanieb/following{/other_user}",
+      "gists_url": "https://api.github.com/users/zanieb/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/zanieb/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/zanieb/subscriptions",
+      "organizations_url": "https://api.github.com/users/zanieb/orgs",
+      "repos_url": "https://api.github.com/users/zanieb/repos",
+      "events_url": "https://api.github.com/users/zanieb/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/zanieb/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    }
+  },
+  {
+    "url": "https://api.github.com/repos/astral-sh/uv/issues/comments/5655074569",
+    "html_url": "https://github.com/astral-sh/uv/issues/21477#issuecomment-5655074569",
+    "issue_url": "https://api.github.com/repos/astral-sh/uv/issues/21477",
+    "id": 5655074569,
+    "node_id": "IC_kwDOKbIFZc8AAAABURGXCQ",
+    "user": {
+      "login": "Tyagiquamar",
+      "id": 104281681,
+      "node_id": "U_kgDOBjc2UQ",
+      "avatar_url": "https://avatars.githubusercontent.com/u/104281681?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Tyagiquamar",
+      "html_url": "https://github.com/Tyagiquamar",
+      "followers_url": "https://api.github.com/users/Tyagiquamar/followers",
+      "following_url": "https://api.github.com/users/Tyagiquamar/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Tyagiquamar/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Tyagiquamar/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Tyagiquamar/subscriptions",
+      "organizations_url": "https://api.github.com/users/Tyagiquamar/orgs",
+      "repos_url": "https://api.github.com/users/Tyagiquamar/repos",
+      "events_url": "https://api.github.com/users/Tyagiquamar/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Tyagiquamar/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "created_at": "2026-09-13T18:04:26Z",
+    "updated_at": "2026-09-13T18:04:26Z",
+    "body": "I'd like to work on this issue.",
+    "author_association": "NONE",
+    "pin": null,
+    "reactions": {
+      "url": "https://api.github.com/repos/astral-sh/uv/issues/comments/5655074569/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "performed_via_github_app": null,
+    "minimized": null,
+    "event": "commented",
+    "actor": {
+      "login": "Tyagiquamar",
+      "id": 104281681,
+      "node_id": "U_kgDOBjc2UQ",
+      "avatar_url": "https://avatars.githubusercontent.com/u/104281681?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Tyagiquamar",
+      "html_url": "https://github.com/Tyagiquamar",
+      "followers_url": "https://api.github.com/users/Tyagiquamar/followers",
+      "following_url": "https://api.github.com/users/Tyagiquamar/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Tyagiquamar/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Tyagiquamar/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Tyagiquamar/subscriptions",
+      "organizations_url": "https://api.github.com/users/Tyagiquamar/orgs",
+      "repos_url": "https://api.github.com/users/Tyagiquamar/repos",
+      "events_url": "https://api.github.com/users/Tyagiquamar/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Tyagiquamar/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    }
+  }
+]

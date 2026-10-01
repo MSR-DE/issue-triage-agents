@@ -1,0 +1,3 @@
+requests
+pg8000
+python-dotenv
