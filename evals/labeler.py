@@ -2,7 +2,7 @@ import json
 
 LABELS = ["bug", "enhancement", "question", "documentation"]
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 SYSTEM_PROMPT = """You triage GitHub issues for uv, a Python package and project manager.
 Pick exactly one label:
@@ -11,8 +11,16 @@ Pick exactly one label:
 - question: the reporter needs help using uv, is unsure whether something is expected, or hits a problem caused by their setup or a misunderstanding rather than a defect in uv.
 - documentation: the docs are wrong, missing or unclear.
 
-The reporter's choice of issue form (bug report or feature request) is a hint, not the answer.
-Decide what a uv maintainer would label it after reading the issue.
+Each issue comes with the issue form the reporter used, detected from its headings.
+In this repository the form is strong evidence:
+- bug report form: usually labeled bug.
+- question form: usually labeled question.
+- feature request form: usually labeled enhancement.
+- none detected: decide from the text alone.
+Keep the label the form suggests unless the text clearly contradicts it. Examples of a clear contradiction:
+a bug report where the reporter is really asking how to do something or whether behaviour is intended (question);
+a feature request that actually describes a crash or wrong result (bug);
+any form where the whole point is that the docs are wrong or missing (documentation).
 Reply with JSON only: {"label": "<one of the four labels>"}"""
 
 # Structured output: the API forces the reply to match this schema.
@@ -28,9 +36,22 @@ SCHEMA = {
 }
 
 
+def detect_form(body):
+    """Which uv issue form was used, from its headings (same logic as the baseline)."""
+    body = body or ""
+    if "### Example" in body or "### Problem Statement" in body:
+        return "feature request"
+    if "### Platform" in body:
+        if "### Python version" in body:
+            return "bug report"
+        return "question"
+    return "none detected"
+
+
 def build_user_message(title, body, max_chars=1500):
+    form = detect_form(body)
     body = (body or "")[:max_chars]
-    return f"Title: {title}\n\nBody:\n{body}"
+    return f"Issue form: {form}\nTitle: {title}\n\nBody:\n{body}"
 
 
 def label_issue(client, model, title, body):
