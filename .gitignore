@@ -1,3 +1,6 @@
 .env
 __pycache__/
 .venv/
+ddd.py
+1.sql
+2.sql
