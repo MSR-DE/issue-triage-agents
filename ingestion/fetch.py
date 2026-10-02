@@ -48,7 +48,7 @@ def fetch_all():
             saved_next, status = row
             if status == "done":
                 print("Already finished.")
-                return
+                return True
             url = saved_next
 
         pages = 0
@@ -59,7 +59,7 @@ def fetch_all():
             if status != 200:
                 conn.commit()
                 print(f"Stopped: HTTP {status} on {url}")
-                break
+                return False
 
             conn.execute(
                 SAVE_STATE,
@@ -71,6 +71,12 @@ def fetch_all():
             print(f"page {pages}: {len(body)} items")
             url = next_url
             time.sleep(0.3)
+            
+            
+
+        return True                  # new: add after the while loop, same indent as `while`
+
+            
 
 
 if __name__ == "__main__":
