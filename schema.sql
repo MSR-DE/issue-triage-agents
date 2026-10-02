@@ -42,3 +42,23 @@ CREATE TABLE IF NOT EXISTS sync_state (
     status          TEXT NOT NULL DEFAULT 'running',
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+
+-- One row per (run, issue): what the labeler predicted.
+-- Saved after every call, so a stopped run resumes where it left off.
+CREATE TABLE IF NOT EXISTS eval_results (
+    run_id            TEXT        NOT NULL,   -- e.g. 'dev-20b-v1', 'test-20b-final'
+    repo              TEXT        NOT NULL,
+    issue_number      INTEGER     NOT NULL,
+    split             TEXT        NOT NULL,   -- 'dev' or 'test'
+    model             TEXT        NOT NULL,
+    gold              TEXT        NOT NULL,   -- maintainer label at run time
+    predicted         TEXT,                   -- NULL if the call failed
+    raw_output        TEXT,
+    prompt_tokens     INTEGER,
+    completion_tokens INTEGER,
+    error             TEXT,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (run_id, repo, issue_number),
+    FOREIGN KEY (repo, issue_number) REFERENCES issues (repo, issue_number)
+);
