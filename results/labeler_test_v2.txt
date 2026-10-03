@@ -1,0 +1,22 @@
+﻿run test-20b-v2: 228 labeled, 0 failed
+
+accuracy: 182/228 = 79.8%
+
+class              n  precision   recall
+bug              104      74.6%    96.2%
+enhancement       72      87.8%    90.3%
+question          50      89.5%    34.0%
+documentation      2       0.0%     0.0%
+
+confusion (rows = true, columns = predicted)
+                     bug  enhance  questio  documen
+bug                  100        3        1        0
+enhancement            6       65        1        0
+question              27        5       17        1
+documentation          1        1        0        0
+
+template baseline on these issues: 170/228 = 74.6%
+model fixed 13 baseline errors: [19897, 20060, 20422, 20509, 20613, 20788, 20789, 20984, 21034, 21299, 21397, 21471, 21829]
+model broke 1 baseline hits:   [19973]
+
+tokens per call: prompt avg 703, completion avg 27, max total 960

@@ -1,0 +1,22 @@
+﻿run dev-20b-v2: 50 labeled, 0 failed
+
+accuracy: 42/50 = 84.0%
+
+class              n  precision   recall
+bug               20      74.1%   100.0%
+enhancement       17     100.0%    94.1%
+question          13     100.0%    46.2%
+documentation      0       0.0%     0.0%
+
+confusion (rows = true, columns = predicted)
+                     bug  enhance  questio  documen
+bug                   20        0        0        0
+enhancement            0       16        0        1
+question               7        0        6        0
+documentation          0        0        0        0
+
+template baseline on these issues: 40/50 = 80.0%
+model fixed 2 baseline errors: [19578, 19602]
+model broke 0 baseline hits:   []
+
+tokens per call: prompt avg 720, completion avg 27, max total 945

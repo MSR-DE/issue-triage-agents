@@ -1,0 +1,22 @@
+﻿run dev-20b-v3b-vector: 50 labeled, 0 failed
+
+accuracy: 38/50 = 76.0%
+
+class              n  precision   recall
+bug               20      72.7%    80.0%
+enhancement       17     100.0%    88.2%
+question          13      53.8%    53.8%
+documentation      0       0.0%     0.0%
+
+confusion (rows = true, columns = predicted)
+                     bug  enhance  questio  documen
+bug                   16        0        4        0
+enhancement            0       15        2        0
+question               6        0        7        0
+documentation          0        0        0        0
+
+template baseline on these issues: 40/50 = 80.0%
+model fixed 4 baseline errors: [19569, 19578, 19602, 19792]
+model broke 6 baseline hits:   [19568, 19598, 19675, 19702, 19759, 19771]
+
+tokens per call: prompt avg 1020, completion avg 47, max total 1263
