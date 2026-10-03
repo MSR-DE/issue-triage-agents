@@ -4,7 +4,7 @@ LABELS = ["bug", "enhancement", "question", "documentation"]
 
 # v2 = SYSTEM_PROMPT alone. v3 = v2 + FEWSHOT_NOTE + the examples block (only when --fewshot is used).
 # The run_id records which one ran, e.g. dev-20b-v2 vs dev-20b-v3-vector.
-PROMPT_VERSION = "v2"  # few-shot note: v3b (4 Oct, two-or-more matching question examples rule)
+PROMPT_VERSION = "v2"
 
 SYSTEM_PROMPT = """You triage GitHub issues for uv, a Python package and project manager.
 Pick exactly one label:
@@ -34,10 +34,8 @@ Use them as evidence of how this repository labels this kind of report. They hel
 looks like a bug but similar past reports were labeled question, because maintainers judged the
 behaviour intended or caused by the reporter's setup.
 Only rely on an example if it describes the same kind of problem; ignore the ones that don't.
-If two or more examples describe the same behaviour as this issue and were labeled question,
-treat that as strong evidence that uv's maintainers consider this behaviour expected: label it
-question even if the reporter used the bug report form.
-A single matching example is not enough on its own, and examples about a different problem never count.
+Do not simply pick the label that appears most often among the examples.
+The issue's own text and form still come first.
 Reply with JSON only: {"label": "<one of the four labels>"}"""
 
 # Structured output: the API forces the reply to match this schema.
