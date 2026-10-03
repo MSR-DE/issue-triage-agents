@@ -5,7 +5,9 @@ from ingestion.db import get_db_connection          # also loads .env (GROQ_API_
 from groq import Groq, RateLimitError
 
 from evals.dataset import REPO, load_dev_set, load_test_set
+from evals.fewshot import ExampleFinder
 from evals.labeler import label_issue
+from retrieval.bm25 import BM25Index
 
 SAVE = """
 INSERT INTO eval_results (run_id, repo, issue_number, split, model, gold,
@@ -21,6 +23,19 @@ ON CONFLICT (run_id, repo, issue_number) DO UPDATE SET
 """
 
 
+def build_index(conn, kind):
+    """The search used to find few-shot examples."""
+    if kind == "bm25":
+        return BM25Index(conn, REPO)
+    # Imported here so plain v2 runs don't load PyTorch and the embedding model.
+    from retrieval.vector import VectorIndex
+    vector = VectorIndex(conn, REPO)
+    if kind == "vector":
+        return vector
+    from retrieval.hybrid import HybridIndex
+    return HybridIndex(BM25Index(conn, REPO), vector)
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--split", choices=["dev", "test"], required=True)
@@ -28,6 +43,7 @@ def main():
     p.add_argument("--model", default="openai/gpt-oss-20b")
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--sleep", type=float, default=6.0)   # pacing for 8K tokens/min
+    p.add_argument("--fewshot", choices=["none", "bm25", "vector", "hybrid"], default="none")
     args = p.parse_args()
 
     client = Groq()
@@ -35,6 +51,9 @@ def main():
         issues = load_dev_set(conn) if args.split == "dev" else load_test_set(conn)
         if args.limit:
             issues = issues[: args.limit]
+
+        # None = plain v2. Otherwise every issue gets up to 5 similar past issues as examples.
+        finder = None if args.fewshot == "none" else ExampleFinder(conn, build_index(conn, args.fewshot))
 
         # resume: skip issues this run already labeled successfully
         done = {r[0] for r in conn.execute(
@@ -46,7 +65,8 @@ def main():
             if num in done:
                 continue
             try:
-                label, raw, usage = label_issue(client, args.model, title, body)
+                examples = finder.find(num, title, body) if finder else None
+                label, raw, usage = label_issue(client, args.model, title, body, examples)
                 row = (label, raw, usage.prompt_tokens, usage.completion_tokens, None)
                 mark = "ok " if label == gold else "XX "
                 print(f"[{i}/{len(issues)}] {mark}#{num} gold={gold} pred={label} "

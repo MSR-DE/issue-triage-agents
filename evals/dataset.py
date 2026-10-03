@@ -1,3 +1,6 @@
+import csv
+from pathlib import Path
+
 REPO = "astral-sh/uv"
 TYPE_LABELS = ("bug", "enhancement", "question", "documentation")
 
@@ -53,9 +56,6 @@ def _load(conn, sql):
     params = {"repo": REPO, "labels": list(TYPE_LABELS)}
     return conn.execute(sql, params).fetchall()
 
-
-import csv
-from pathlib import Path
 
 HERE = Path(__file__).parent
 

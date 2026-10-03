@@ -2,6 +2,8 @@ import json
 
 LABELS = ["bug", "enhancement", "question", "documentation"]
 
+# v2 = SYSTEM_PROMPT alone. v3 = v2 + FEWSHOT_NOTE + the examples block (only when --fewshot is used).
+# The run_id records which one ran, e.g. dev-20b-v2 vs dev-20b-v3-vector.
 PROMPT_VERSION = "v2"
 
 SYSTEM_PROMPT = """You triage GitHub issues for uv, a Python package and project manager.
@@ -21,6 +23,19 @@ Keep the label the form suggests unless the text clearly contradicts it. Example
 a bug report where the reporter is really asking how to do something or whether behaviour is intended (question);
 a feature request that actually describes a crash or wrong result (bug);
 any form where the whole point is that the docs are wrong or missing (documentation).
+Reply with JSON only: {"label": "<one of the four labels>"}"""
+
+# Added to the system prompt ONLY when examples are given, so v2 runs stay exactly as they were.
+# DRAFT: rewrite in your own words.
+FEWSHOT_NOTE = """
+
+After the issue you may also see similar earlier uv issues with the label uv's maintainers gave them.
+Use them as evidence of how this repository labels this kind of report. They help most when a report
+looks like a bug but similar past reports were labeled question, because maintainers judged the
+behaviour intended or caused by the reporter's setup.
+Only rely on an example if it describes the same kind of problem; ignore the ones that don't.
+Do not simply pick the label that appears most often among the examples.
+The issue's own text and form still come first.
 Reply with JSON only: {"label": "<one of the four labels>"}"""
 
 # Structured output: the API forces the reply to match this schema.
@@ -48,19 +63,25 @@ def detect_form(body):
     return "none detected"
 
 
-def build_user_message(title, body, max_chars=1500):
+def build_user_message(title, body, max_chars=1500, examples=None):
     form = detect_form(body)
     body = (body or "")[:max_chars]
-    return f"Issue form: {form}\nTitle: {title}\n\nBody:\n{body}"
+    msg = f"Issue form: {form}\nTitle: {title}\n\nBody:\n{body}"
+    if examples:
+        # One line per example: number, title, and the maintainers' label.
+        lines = "\n".join(f'- #{n} "{t}" -> {label}' for n, t, label in examples)
+        msg += f"\n\nSimilar past issues and the label uv's maintainers gave them:\n{lines}"
+    return msg
 
 
-def label_issue(client, model, title, body):
+def label_issue(client, model, title, body, examples=None):
     """One API call for one issue. Returns (label, raw_text, usage)."""
+    system = SYSTEM_PROMPT + FEWSHOT_NOTE if examples else SYSTEM_PROMPT
     resp = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": build_user_message(title, body)},
+            {"role": "system", "content": system},
+            {"role": "user", "content": build_user_message(title, body, examples=examples)},
         ],
         response_format={"type": "json_schema", "json_schema": SCHEMA},
         reasoning_effort="low",
