@@ -54,9 +54,31 @@ def _load(conn, sql):
     return conn.execute(sql, params).fetchall()
 
 
+import csv
+from pathlib import Path
+
+HERE = Path(__file__).parent
+
+PINNED_SQL = """
+SELECT issue_number, title, body
+FROM issues
+WHERE repo = %(repo)s AND issue_number = ANY(%(numbers)s)
+ORDER BY created_at
+"""
+
+
+def _load_pinned(conn, filename):
+    with (HERE / filename).open(newline="") as f:
+        gold = {int(r["issue_number"]): r["label"] for r in csv.DictReader(f)}
+    rows = conn.execute(PINNED_SQL, {"repo": REPO, "numbers": list(gold)}).fetchall()
+    if len(rows) != len(gold):
+        raise RuntimeError(f"{filename}: {len(gold)} pinned, {len(rows)} found in issues")
+    return [(n, title, body, gold[n]) for n, title, body in rows]
+
+
 def load_test_set(conn):
-    return _load(conn, TEST_SQL)
+    return _load_pinned(conn, "test_issues.csv")
 
 
 def load_dev_set(conn):
-    return _load(conn, DEV_SQL)
+    return _load_pinned(conn, "dev_issues.csv")
