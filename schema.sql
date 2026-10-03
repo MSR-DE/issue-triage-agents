@@ -62,3 +62,16 @@ CREATE TABLE IF NOT EXISTS eval_results (
     PRIMARY KEY (run_id, repo, issue_number),
     FOREIGN KEY (repo, issue_number) REFERENCES issues (repo, issue_number)
 );
+
+-- Ground truth for the duplicate eval: which earlier issue(s) each duplicate points to.
+-- Rebuilt from timelines by `python -m ingestion.duplicates`.
+CREATE TABLE IF NOT EXISTS duplicate_links (
+    repo            TEXT    NOT NULL,
+    issue_number    INTEGER NOT NULL,   -- the duplicate
+    original_number INTEGER NOT NULL,   -- an earlier issue a maintainer pointed to
+    tier            TEXT    NOT NULL CHECK (tier IN ('explicit', 'single_link', 'multi_link')),
+    evidence_url    TEXT,               -- the maintainer comment with the link
+    PRIMARY KEY (repo, issue_number, original_number),
+    FOREIGN KEY (repo, issue_number)    REFERENCES issues (repo, issue_number),
+    FOREIGN KEY (repo, original_number) REFERENCES issues (repo, issue_number)
+);
