@@ -3,3 +3,6 @@ psycopg
 python-dotenv
 groq
 sentence-transformers
+rank_bm25
+snowballstemmer
+pgvector

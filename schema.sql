@@ -75,3 +75,19 @@ CREATE TABLE IF NOT EXISTS duplicate_links (
     FOREIGN KEY (repo, issue_number)    REFERENCES issues (repo, issue_number),
     FOREIGN KEY (repo, original_number) REFERENCES issues (repo, issue_number)
 );
+
+-- pgvector: needed for issue_embeddings.
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- One embedding per issue, kept in its own table so issues stays the raw original
+-- and the model can be swapped later (the model column says which one made the vector).
+CREATE TABLE IF NOT EXISTS issue_embeddings (
+    repo         TEXT        NOT NULL,
+    issue_number INTEGER     NOT NULL,
+    model        TEXT        NOT NULL,          -- e.g. 'BAAI/bge-small-en-v1.5'
+    embedding    vector(384) NOT NULL,          -- bge-small outputs 384 numbers
+    embedded_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (repo, issue_number),
+    FOREIGN KEY (repo, issue_number)
+        REFERENCES issues (repo, issue_number) ON DELETE CASCADE
+);
