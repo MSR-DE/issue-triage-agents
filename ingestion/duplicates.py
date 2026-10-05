@@ -6,8 +6,8 @@ Tiers, per duplicate:
   explicit    - a maintainer comment says "duplicate"/"dupe" and links the issue(s)
   single_link - no such wording, but exactly one earlier issue is linked
   multi_link  - no such wording, two or more earlier issues linked
-Duplicates with no usable link are left out. The table is rebuilt from scratch on
-every run (one transaction). Run from the project root:  python -m ingestion.duplicates
+Duplicates with no usable link are left out. Links to meta issues (pinned guides,
+not problems) are ignored. The table is rebuilt from scratch on every run (one transaction). Run from the project root:  python -m ingestion.duplicates
 """
 import re
 from collections import Counter
@@ -22,6 +22,10 @@ LINK = re.compile(
     r"|(?<![\w/&])#(\d+)\b"                      # plain #N
 )
 DUP_WORDING = re.compile(r"duplicat|\bdupe", re.I)
+
+# Issues maintainers link as advice, not as "same problem". #9452 "Before posting in the
+# issue tracker" glued unrelated issues into one 38-issue cluster (found 5 Oct 2026).
+META_ISSUES = {9452}
 
 DUPES = """
 SELECT DISTINCT i.issue_number
@@ -56,6 +60,8 @@ def find_originals(number, events, created):
         for n in linked_issues(body):
             if n == number or n not in created or created[n] >= created[number]:
                 continue                    # self-link, a PR/other repo, or a later issue
+            if n in META_ISSUES:
+                continue                    # a pinned guide, not the same problem
             target = explicit if DUP_WORDING.search(body) else other
             target.setdefault(n, e.get("html_url"))
     if explicit:

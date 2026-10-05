@@ -12,3 +12,5 @@ why_missed.py
 _to_delete/
 show_examples.py
 check_chatgroq.py
+q*.sql
+check_dups.py
