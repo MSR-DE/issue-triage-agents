@@ -79,8 +79,11 @@ def main(run_id, index_factory=None):
         print(f"  same-length: agent {len(agent_n)}/{len(dups)}, vector top-n {len(vec_n)}/{len(dups)}; "
               f"fixed {len(fixed)} {sorted(fixed)}, broke {len(broke)} {sorted(broke)}, "
               f"p = {mcnemar(fixed, broke):.4f}")
-        print(f"  precision of the agent's suggestions on duplicates: {right_agent}/{shown_agent}"
-              f" = {right_agent / max(1, shown_agent):.0%}")
+        right_vec = sum(len(set(vector_top5[n]) & key(n, o)) for n, *_, o in dups)
+        shown_vec = sum(len(vector_top5[n]) for n, *_ in dups)
+        print(f"  precision of suggestions on duplicates: agent {right_agent}/{shown_agent}"
+              f" = {right_agent / max(1, shown_agent):.0%}, vector top 5 {right_vec}/{shown_vec}"
+              f" = {right_vec / max(1, shown_vec):.0%}")
 
     lens = [len(rows[n][2]) for n, *_ in dups]
     none_on_dup = [n for n, *_ in dups if not rows[n][2]]

@@ -1,0 +1,21 @@
+issue,kind,label,duplicates,faithfulness,claims,unsupported,check_flags,draft
+1687,duplicate,bug,[],1.0,1,,,Thanks for the detailed report! We’ll look into why uv’s requirements parser is tripping on the `--only-binary` flag.
+1688,duplicate,bug,[1450],1.0,2,,,This looks like a duplicate of #1450. Could you check that issue to see if it covers your case?
+1712,duplicate,bug,"[1597, 1619]",1.0,2,,,It looks like this issue is a duplicate of #1597 and #1619. Could you check those and see if they cover your situation? Thanks!
+1722,control,bug,[],1.0,2,,,Thanks for the report! We'll look into why `uv venv` ignores `VIRTUAL_ENV`. Your example is helpful.
+1761,duplicate,bug,"[1374, 1705, 1480]",1.0,1,,,"This looks like a duplicate of #1374, #1705 and #1480. Could you check those to see if they cover your case? Thanks!"
+2716,duplicate,bug,[2711],1.0,2,,,This looks like a duplicate of #2711. Could you check that issue to see if it covers your case?
+2726,duplicate,bug,[1661],1.0,1,,,Thanks for the report! This issue looks like a duplicate of #1661; could you check that one as well?
+3139,duplicate,bug,[2607],1.0,4,,,"It looks like this issue is similar to #2607, which covers installing and managing Python interpreters. Could you check that one to see if it addresses your request? Thanks for bringing it up!"
+3255,duplicate,bug,[2025],1.0,1,,,This looks like a duplicate of issue #2025; could you check that one to see if it covers your case? Thanks!
+3960,control,bug,[],1.0,2,,,Thanks for the suggestion! We’ll add this to our backlog and discuss it with the team.
+6006,duplicate,bug,"[4809, 3163]",1.0,2,,,Thanks for the suggestion! This issue looks like a duplicate of #4809 and #3163—could you check those to see if they already cover it?
+6150,control,bug,"[5818, 6059]",1.0,2,,,Thanks for the report! This issue looks like a duplicate of #5818 and #6059. Could you check those to see if they already cover your concern?
+7587,control,bug,[6445],1.0,2,,,This looks like a duplicate of #6445; could you check that issue to see if it covers your case?
+8046,duplicate,bug,"[5224, 8015]",1.0,2,,,Thanks for the report! This looks like a duplicate of #5224 and #8015. Could you check those issues to see if they already cover your request?
+8169,duplicate,bug,[8136],1.0,2,,,Thanks for the report! This looks like a duplicate of #8136. Could you check that issue to see if it covers your case?
+8576,duplicate,bug,[7870],1.0,2,,,Thanks for the report! This looks like a duplicate of #7870. Could you check that issue to see if it covers your case?
+8761,duplicate,bug,"[6724, 5257, 8654]",1.0,3,,,"Thanks for the report! This looks like a duplicate of #6724, #5257, and #8654. Could you check those issues to see if they cover your case?"
+9930,duplicate,bug,[1703],1.0,3,,,Thanks for raising this! This issue looks like a duplicate of #1703—could you check that one to see if it covers your question? Let us know if anything is still unclear.
+10669,control,bug,[],1.0,2,,,Thanks for the detailed report! We’ll look into why `uv sync` with PyPy only installs the current package. Your example and environment info are helpful.
+11219,control,bug,[],1.0,2,,,Thanks for the detailed report! We’ll look into the concurrency issue with project virtual‑environment creation.

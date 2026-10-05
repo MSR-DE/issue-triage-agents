@@ -91,3 +91,24 @@ CREATE TABLE IF NOT EXISTS issue_embeddings (
     FOREIGN KEY (repo, issue_number)
         REFERENCES issues (repo, issue_number) ON DELETE CASCADE
 );
+
+-- Duplicate Finder eval: one row per issue per run (evals/run_dup_finder.py).
+CREATE TABLE IF NOT EXISTS dup_eval_results (
+    run_id            TEXT        NOT NULL,   -- e.g. 'dupdev-20b-v1'
+    repo              TEXT        NOT NULL,
+    issue_number      INTEGER     NOT NULL,
+    split             TEXT        NOT NULL,   -- 'dev' or 'test'
+    kind              TEXT        NOT NULL,   -- 'duplicate' or 'control'
+    model             TEXT        NOT NULL,
+    returned          INTEGER[],              -- grounded answer, best first; NULL if the run failed
+    invented          INTEGER[],              -- numbers the verdict made up (dropped)
+    rounds            INTEGER,
+    queries           TEXT[],                 -- the agent's own search queries (not the seed)
+    reads             INTEGER[],              -- issues it read
+    prompt_tokens     INTEGER,
+    completion_tokens INTEGER,
+    error             TEXT,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (run_id, repo, issue_number),
+    FOREIGN KEY (repo, issue_number) REFERENCES issues (repo, issue_number)
+);
