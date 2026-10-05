@@ -6,3 +6,7 @@ sentence-transformers
 rank_bm25
 snowballstemmer
 pgvector
+langgraph
+langchain
+langchain-groq
+langfuse
