@@ -1,0 +1,32 @@
+﻿
+== BM25 ==   (strict | cluster)
+group           n  recall@1    recall@5    recall@10   |  recall@1    recall@5    recall@10 
+headline      347      11.8%      24.5%      30.5%  |      17.0%      32.6%      38.6%
+explicit      167      18.6%      35.3%      41.9%  |      24.0%      41.3%      46.1%
+single_link   180       5.6%      14.4%      20.0%  |      10.6%      24.4%      31.7%
+multi_link     26       3.8%      15.4%      19.2%  |       7.7%      19.2%      23.1%
+missed even at top 10: 262, e.g. [1478, 1499, 1500, 1533, 1561, 1584, 1665, 1761, 1837, 1869]
+
+== Vector (bge-small) ==   (strict | cluster)
+group           n  recall@1    recall@5    recall@10   |  recall@1    recall@5    recall@10 
+headline      347      21.3%      41.5%      55.6%  |      29.7%      55.0%      67.1%
+explicit      167      29.3%      52.7%      68.3%  |      40.1%      64.7%      77.2%
+single_link   180      13.9%      31.1%      43.9%  |      20.0%      46.1%      57.8%
+multi_link     26      26.9%      42.3%      57.7%  |      34.6%      46.2%      57.7%
+missed even at top 10: 165, e.g. [1499, 1500, 1550, 1584, 1687, 1761, 1837, 1869, 1907, 1920]
+
+== Hybrid (BM25 + vector, RRF) ==   (strict | cluster)
+group           n  recall@1    recall@5    recall@10   |  recall@1    recall@5    recall@10 
+headline      347      18.2%      39.2%      45.8%  |      26.2%      48.7%      57.3%
+explicit      167      22.8%      52.1%      59.9%  |      30.5%      58.1%      67.1%
+single_link   180      13.9%      27.2%      32.8%  |      22.2%      40.0%      48.3%
+multi_link     26       7.7%      34.6%      46.2%  |      11.5%      34.6%      50.0%
+missed even at top 10: 202, e.g. [1478, 1499, 1500, 1561, 1584, 1761, 1837, 1869, 1907, 1920]
+
+== paired, headline duplicates, top 5, strict ==
+Vector (bge-small) vs BM25: fixed 84, broke 25, p = 0.0000
+Hybrid (BM25 + vector, RRF) vs Vector (bge-small): fixed 31, broke 39, p = 0.4030
+
+== paired, headline duplicates, top 5, cluster ==
+Vector (bge-small) vs BM25: fixed 99, broke 21, p = 0.0000
+Hybrid (BM25 + vector, RRF) vs Vector (bge-small): fixed 26, broke 48, p = 0.0141
