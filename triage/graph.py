@@ -26,7 +26,10 @@ class TriageState(TypedDict, total=False):
     number: int
     title: str
     body: str
-    label: str      # written by label_issue
+    label: str              # written by label_issue
+    raw_output: str         # written by label_issue (the model's raw JSON)
+    prompt_tokens: int      # written by label_issue
+    completion_tokens: int  # written by label_issue
 
 
 # Same settings as the direct Groq call in evals/labeler.py, plus a safety cap
@@ -61,7 +64,13 @@ def label_issue(state: TriageState) -> dict:
         finish = raw.response_metadata.get("finish_reason")
         raise ValueError(f"bad labeler output (finish={finish}): {raw.content!r}")
 
-    return {"label": label}
+    usage = out["raw"].usage_metadata
+    return {
+        "label": label,
+        "raw_output": out["raw"].content,
+        "prompt_tokens": usage["input_tokens"],
+        "completion_tokens": usage["output_tokens"],
+    }
 
 
 # ------ Graph ------ #
