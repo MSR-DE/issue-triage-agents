@@ -1,12 +1,13 @@
-"""Triage graph, step 2: label -> human review (pauses) -> post (dry run).
+"""Triage graph: (label + find duplicates, in parallel) -> human review (pauses) -> post (dry run).
 
-    python -m triage.graph run 19540       # labels, then pauses for review
+    python -m triage.graph run 19540       # labels + finds duplicates, then pauses
     python -m triage.graph review 19540    # shows the proposal, asks, resumes
 
 The pause is saved in Postgres (checkpointer), so `review` works from a new
 process, after a restart, or days later.
 """
 import argparse
+from datetime import datetime
 from typing import TypedDict
 
 # Must be imported first: it loads .env (DATABASE_URL, GROQ_API_KEY, LANGFUSE_*).
@@ -23,6 +24,7 @@ from langgraph.types import Command, interrupt
 from evals.dataset import REPO
 # The frozen v2 prompt lives in one place only.
 from evals.labeler import LABELS, SCHEMA, SYSTEM_PROMPT, build_user_message
+from triage.duplicate_finder import make_finder
 
 MODEL = "openai/gpt-oss-20b"
 
@@ -32,12 +34,15 @@ class TriageState(TypedDict, total=False):
     number: int
     title: str
     body: str
+    created_at: datetime    # input: the duplicate search only looks before it
     label: str              # written by label_issue (the model's proposal)
     raw_output: str         # written by label_issue (the model's raw JSON)
     prompt_tokens: int      # written by label_issue
     completion_tokens: int  # written by label_issue
+    duplicates: list[int]   # written by find_duplicates (grounded, best first)
     decision: str           # written by review: approved / edited / rejected
     final_label: str        # written by review: what a human signed off on
+    final_duplicates: list[int]  # written by review
 
 
 # Same settings as the direct Groq call in evals/labeler.py, plus a safety cap
@@ -86,26 +91,34 @@ def review(state: TriageState) -> dict:
     # saved by the checkpointer and resumes with Command(resume=decision).
     # On resume this node runs again from the top and interrupt() returns the
     # decision, so nothing with side effects may come before it.
+    proposed_dups = state.get("duplicates", [])
     decision = interrupt({
         "number": state["number"],
         "title": state["title"],
         "proposed_label": state["label"],
+        "proposed_duplicates": proposed_dups,
     })
 
     # The reviewer's input is checked too, not just the model's.
     action = decision.get("action")
     if action == "approve":
-        return {"decision": "approved", "final_label": state["label"]}
-    if action == "edit" and decision.get("label") in LABELS:
-        return {"decision": "edited", "final_label": decision["label"]}
+        return {"decision": "approved", "final_label": state["label"],
+                "final_duplicates": proposed_dups}
+    if (action == "edit" and decision.get("label") in LABELS
+            and all(isinstance(n, int) for n in decision.get("duplicates", []))):
+        return {"decision": "edited", "final_label": decision["label"],
+                "final_duplicates": decision.get("duplicates", [])}
     if action == "reject":
-        return {"decision": "rejected", "final_label": None}
+        return {"decision": "rejected", "final_label": None, "final_duplicates": []}
     raise ValueError(f"invalid review decision: {decision!r}")
 
 
 def post(state: TriageState) -> dict:
     # Dry run: nothing is written to GitHub yet (read-only token, by design).
     print(f"[dry run] would add label '{state['final_label']}' to {REPO}#{state['number']}")
+    if state.get("final_duplicates"):
+        refs = ", ".join(f"#{n}" for n in state["final_duplicates"])
+        print(f"[dry run] would comment: possible duplicate of {refs}")
     return {}
 
 
@@ -116,31 +129,41 @@ def after_review(state: TriageState) -> str:
 
 # ------ Graph ------ #
 
-def build_graph(with_review=False, checkpointer=None):
-    """with_review=False: label only (what the evals measure; no pause).
-    with_review=True: label -> review -> post; needs a checkpointer."""
+def build_graph(with_review=False, checkpointer=None, finder=None):
+    """with_review=False: label only (what the labeler evals measure; no pause).
+    with_review=True: label + find_duplicates (in parallel) -> review -> post;
+    needs a checkpointer and a compiled Duplicate Finder (make_finder)."""
     builder = StateGraph(TriageState)
     builder.add_node("label_issue", label_issue)
     builder.add_edge(START, "label_issue")
 
-    if with_review:
-        builder.add_node("review", review)
-        builder.add_node("post", post)
-        builder.add_edge("label_issue", "review")
-        builder.add_conditional_edges("review", after_review, ["post", END])
-        builder.add_edge("post", END)
-    else:
+    if not with_review:
         builder.add_edge("label_issue", END)
+        return builder.compile(checkpointer=checkpointer)
 
+    def find_duplicates(state: TriageState) -> dict:
+        # The agent has its own state; pass in what it needs, take back the answer.
+        # Called inside this node, it runs as a subgraph: same trace, same checkpointer.
+        r = finder.invoke({"number": state["number"], "title": state["title"],
+                           "body": state["body"], "created_at": state["created_at"]})
+        return {"duplicates": r["duplicates"]}
+
+    builder.add_node("find_duplicates", find_duplicates)
+    builder.add_node("review", review)
+    builder.add_node("post", post)
+    builder.add_edge(START, "find_duplicates")                    # fan out: both start at once
+    builder.add_edge(["label_issue", "find_duplicates"], "review")  # fan in: review waits for both
+    builder.add_conditional_edges("review", after_review, ["post", END])
+    builder.add_edge("post", END)
     return builder.compile(checkpointer=checkpointer)
 
 
 # ------ CLI ------ #
 
 def load_issue(conn, number):
-    """Title and body of one uv issue from Postgres."""
+    """Title, body and created_at of one uv issue from Postgres."""
     row = conn.execute(
-        "SELECT title, body FROM issues WHERE repo = %s AND issue_number = %s",
+        "SELECT title, body, created_at FROM issues WHERE repo = %s AND issue_number = %s",
         (REPO, number),
     ).fetchone()
     if row is None:
@@ -159,38 +182,59 @@ def run_config(number):
     }
 
 
-def cmd_run(graph, number):
+def cmd_run(graph, conn, number):
     config = run_config(number)
     if graph.get_state(config).next:
         raise SystemExit(f"#{number} is already waiting for review: "
                          f"python -m triage.graph review {number}")
 
-    with get_db_connection() as conn:
-        title, body = load_issue(conn, number)
-
-    result = graph.invoke({"number": number, "title": title, "body": body},
+    title, body, created_at = load_issue(conn, number)
+    result = graph.invoke({"number": number, "title": title, "body": body,
+                           "created_at": created_at},
                           {**config, "run_name": f"triage #{number}"})
     if "__interrupt__" in result:
-        print(f"#{number} {title!r}: proposed '{result['label']}', waiting for review.")
+        print(f"#{number} {title!r}: proposed '{result['label']}', "
+              f"duplicates {result['duplicates'] or 'none'}, waiting for review.")
         print(f"  python -m triage.graph review {number}")
 
 
-def ask_decision(proposed):
+def ask_decision(label, duplicates):
     while True:
-        answer = input(f"[a]pprove '{proposed}', [e]dit, [r]eject? ").strip().lower()
+        answer = input("[a]pprove, [e]dit, [r]eject? ").strip().lower()
         if answer == "a":
             return {"action": "approve"}
         if answer == "r":
             return {"action": "reject"}
         if answer == "e":
-            while True:
-                label = input(f"new label ({' / '.join(LABELS)}): ").strip().lower()
-                if label in LABELS:
-                    return {"action": "edit", "label": label}
-                print("not one of the four labels")
+            return {"action": "edit", "label": ask_label(label),
+                    "duplicates": ask_duplicates(duplicates)}
 
 
-def cmd_review(graph, number):
+def ask_label(current):
+    while True:
+        label = input(f"label ({' / '.join(LABELS)}, Enter keeps '{current}'): ").strip().lower()
+        if not label:
+            return current
+        if label in LABELS:
+            return label
+        print("not one of the four labels")
+
+
+def ask_duplicates(current):
+    shown = ", ".join(map(str, current)) or "none"
+    while True:
+        raw = input(f"duplicates (issue numbers, comma-separated; '-' for none; Enter keeps {shown}): ").strip()
+        if not raw:
+            return current
+        if raw == "-":
+            return []
+        try:
+            return [int(x.strip().lstrip("#")) for x in raw.split(",") if x.strip()]
+        except ValueError:
+            print("use issue numbers like 1526, 1374")
+
+
+def cmd_review(graph, conn, number):
     config = run_config(number)
     snapshot = graph.get_state(config)
     if not snapshot.interrupts:
@@ -198,28 +242,44 @@ def cmd_review(graph, number):
 
     proposal = snapshot.interrupts[0].value
     print(f"#{proposal['number']} {proposal['title']!r}")
-    decision = ask_decision(proposal["proposed_label"])
+    print(f"  label: {proposal['proposed_label']}")
+    for n in proposal["proposed_duplicates"] or []:
+        row = conn.execute("SELECT title FROM issues WHERE repo = %s AND issue_number = %s",
+                           (REPO, n)).fetchone()
+        print(f"  possible duplicate: #{n} {row[0] if row else ''!r}")
+    if not proposal["proposed_duplicates"]:
+        print("  possible duplicates: none")
+    decision = ask_decision(proposal["proposed_label"], proposal["proposed_duplicates"])
 
     result = graph.invoke(Command(resume=decision),
                           {**config, "run_name": f"review #{number}"})
-    print(f"#{number}: {result['decision']} -> {result['final_label']}")
+    print(f"#{number}: {result['decision']} -> {result['final_label']}, "
+          f"duplicates {result['final_duplicates'] or 'none'}")
 
 
-def main():
+def main(index_factory=None):
     p = argparse.ArgumentParser()
     p.add_argument("command", choices=["run", "review"])
     p.add_argument("number", type=int, help="uv issue number, e.g. 19540")
     args = p.parse_args()
 
-    # One Postgres connection for the checkpointer; setup() creates its
-    # tables the first time and is a no-op after that.
-    with PostgresSaver.from_conn_string(DATABASE_URL) as checkpointer:
+    # Two connections: the checkpointer's (autocommit, owned by LangGraph) and ours
+    # for issue lookups and the Duplicate Finder's tools. setup() creates the
+    # checkpoint tables the first time and is a no-op after that.
+    with PostgresSaver.from_conn_string(DATABASE_URL) as checkpointer, \
+            get_db_connection() as conn:
         checkpointer.setup()
-        graph = build_graph(with_review=True, checkpointer=checkpointer)
-        if args.command == "run":
-            cmd_run(graph, args.number)
+        if index_factory is None:
+            from retrieval.vector import VectorIndex      # loads the embedding model
+            index = VectorIndex(conn, REPO)
         else:
-            cmd_review(graph, args.number)
+            index = index_factory(conn)
+        graph = build_graph(with_review=True, checkpointer=checkpointer,
+                            finder=make_finder(conn, index))
+        if args.command == "run":
+            cmd_run(graph, conn, args.number)
+        else:
+            cmd_review(graph, conn, args.number)
 
     # Traces upload in the background; flush or the last ones can be lost.
     get_client().flush()
