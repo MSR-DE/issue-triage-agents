@@ -24,12 +24,16 @@ from langgraph.types import Command, interrupt
 
 from evals.dataset import REPO
 # The frozen v2 prompt lives in one place only.
-from evals.labeler import LABELS, SCHEMA, SYSTEM_PROMPT, build_user_message
+from evals.labeler import (LABELS, SCHEMA, SECURE_SYSTEM_PROMPT, SYSTEM_PROMPT,
+                           build_user_message)
 from triage.checks import check_reply
 from triage.drafter import make_drafter
 from triage.duplicate_finder import make_finder
 
 MODEL = "openai/gpt-oss-20b"
+# Issue text in <issue> tags + "untrusted" note for the labeler. Must keep dev ≈ 84%
+# (run_id dev-20b-graph-v2sec) and should block the 2 label-forcing attacks.
+SECURE_LABELER = True
 
 
 # Each node returns only the fields it changed.
@@ -71,8 +75,9 @@ labeler = llm.with_structured_output(
 
 def label_issue(state: TriageState) -> dict:
     messages = [
-        SystemMessage(content=SYSTEM_PROMPT),
-        HumanMessage(content=build_user_message(state["title"], state["body"])),
+        SystemMessage(content=SECURE_SYSTEM_PROMPT if SECURE_LABELER else SYSTEM_PROMPT),
+        HumanMessage(content=build_user_message(state["title"], state["body"],
+                                                untrusted=SECURE_LABELER)),
     ]
     out = labeler.invoke(messages)
 
