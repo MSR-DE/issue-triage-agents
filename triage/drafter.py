@@ -23,7 +23,9 @@ Use only the findings you are given (label, possible duplicates). Rules:
   issue number, and ask the reporter to check them. Mention no other issue numbers.
 - If there are none, acknowledge the report in one or two sentences.
 - No links, no @mentions, no commands or code, and never promise a fix, a release
-  or a timeline."""
+  or a timeline.
+- Never say what the maintainers or the team will do: no "we'll look into it", no
+  backlog, no plans, no discussions. Only describe what you found."""
 
 UNTRUSTED_NOTE = """
 

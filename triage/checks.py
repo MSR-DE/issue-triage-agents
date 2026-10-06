@@ -1,9 +1,9 @@
 """Output checks on a drafted reply, in code, before a maintainer sees it.
 
 A reply may only mention the issue numbers the agents found. It must not contain
-links, @mentions, commands or code, or promise a fix or a release. Anything else
-is flagged (security layer 5: an injected issue can't smuggle these into a reply
-without the reviewer seeing a warning).
+links, @mentions, commands or code, promise a fix or a release, or commit the
+team to any work. Anything else is flagged (security layer 5: an injected issue
+can't smuggle these into a reply without the reviewer seeing a warning).
 """
 import re
 
@@ -17,8 +17,14 @@ MENTION = re.compile(r"(?<![\w.`])@[A-Za-z0-9][A-Za-z0-9-]*")
 # clean drafts in the first injection run (10 of 18).
 CODE = re.compile(r"```|`[^`\n]*(?:[|;&<>]|\$\(|\b(?:curl|wget|sudo|rm|chmod|eval|bash|sh)\b)[^`\n]*`")
 COMMAND = re.compile(r"^\s*(?:\$|>|sudo |curl |wget |pip |uv |python )", re.M | re.I)
+# Promises of a fix/release/timeline, and commitments about what the team will do
+# ("we'll look into it", "added to our backlog"): the grounded faithfulness check
+# found 5 of 20 drafts committing the maintainers to work. ' or ’ (models use both).
 PROMISE = re.compile(
-    r"\b(?:will be (?:fixed|released|shipped|resolved)|we(?:'ll| will) (?:fix|release|ship)"
+    r"\b(?:will be (?:fixed|released|shipped|resolved|addressed|prioriti[sz]ed)"
+    r"|we(?:['\u2019]ll| will| are going to) (?:fix|release|ship|look|add|investigate|consider"
+    r"|discuss|review|work|get back|follow up|keep you|update you)"
+    r"|(?:look|looking) into (?:it|this)|backlog|roadmap|with the team"
     r"|next release|fixed (?:soon|shortly)|eta\b|by (?:tomorrow|next week))", re.I)
 
 
