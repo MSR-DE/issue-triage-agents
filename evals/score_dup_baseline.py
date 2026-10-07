@@ -23,7 +23,7 @@ QUERY_BODY_CHARS = 1500
 
 def main(index_factory=None):
     p = argparse.ArgumentParser()
-    p.add_argument("--split", choices=["dev", "test"], required=True)
+    p.add_argument("--split", choices=["dev", "test", "test_small"], required=True)
     args = p.parse_args()
 
     with get_db_connection() as conn:

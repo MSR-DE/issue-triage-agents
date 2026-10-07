@@ -45,7 +45,7 @@ def tool_use(messages):
 
 def main(index_factory=None):
     p = argparse.ArgumentParser()
-    p.add_argument("--split", choices=["dev", "test"], required=True)
+    p.add_argument("--split", choices=["dev", "test", "test_small"], required=True)
     p.add_argument("--run-id", required=True)
     p.add_argument("--limit", type=int, default=None)
     # One issue is ~3-5K tokens over 2-3 calls; the free tier allows 8K per minute.

@@ -1,5 +1,5 @@
-"""Triage graph: (label + find duplicates, in parallel) -> draft reply -> human review
-(pauses) -> post (dry run).
+"""Triage graph: (label + find duplicates + investigate "already fixed?", in parallel)
+-> draft reply -> human review (pauses) -> post (dry run).
 
     python -m triage.graph run 19540       # labels, finds duplicates, drafts, then pauses
     python -m triage.graph review 19540    # shows the proposal, asks, resumes
@@ -29,6 +29,7 @@ from evals.labeler import (LABELS, SCHEMA, SECURE_SYSTEM_PROMPT, SYSTEM_PROMPT,
 from triage.checks import check_reply
 from triage.drafter import make_drafter
 from triage.duplicate_finder import make_finder
+from triage.investigator import INDEX_VARIANT, make_investigator
 
 MODEL = "openai/gpt-oss-20b"
 # Issue text in <issue> tags + "untrusted" note for the labeler. Must keep dev ≈ 84%
@@ -47,12 +48,14 @@ class TriageState(TypedDict, total=False):
     prompt_tokens: int      # written by label_issue
     completion_tokens: int  # written by label_issue
     duplicates: list[int]   # written by find_duplicates (grounded, best first)
+    fixes: list[int]        # written by investigate: merged PRs that may already fix it
     draft: str              # written by draft_reply (gpt-oss-120b)
     draft_problems: list[str]  # written by draft_reply (output checks, triage/checks.py)
     draft_tokens: int       # written by draft_reply
     decision: str           # written by review: approved / edited / rejected
     final_label: str        # written by review: what a human signed off on
     final_duplicates: list[int]  # written by review
+    final_fixes: list[int]  # written by review
     final_reply: str        # written by review: the reply a human signed off on ("" = none)
 
 
@@ -104,11 +107,13 @@ def review(state: TriageState) -> dict:
     # On resume this node runs again from the top and interrupt() returns the
     # decision, so nothing with side effects may come before it.
     proposed_dups = state.get("duplicates", [])
+    proposed_fixes = state.get("fixes", [])
     decision = interrupt({
         "number": state["number"],
         "title": state["title"],
         "proposed_label": state["label"],
         "proposed_duplicates": proposed_dups,
+        "proposed_fixes": proposed_fixes,
         "draft": state.get("draft", ""),
         "draft_problems": state.get("draft_problems", []),
     })
@@ -117,16 +122,19 @@ def review(state: TriageState) -> dict:
     action = decision.get("action")
     if action == "approve":
         return {"decision": "approved", "final_label": state["label"],
-                "final_duplicates": proposed_dups, "final_reply": state.get("draft", "")}
+                "final_duplicates": proposed_dups, "final_fixes": proposed_fixes,
+                "final_reply": state.get("draft", "")}
     if (action == "edit" and decision.get("label") in LABELS
             and all(isinstance(n, int) for n in decision.get("duplicates", []))
+            and all(isinstance(n, int) for n in decision.get("fixes", []))
             and isinstance(decision.get("reply", ""), str)):
         return {"decision": "edited", "final_label": decision["label"],
                 "final_duplicates": decision.get("duplicates", []),
+                "final_fixes": decision.get("fixes", []),
                 "final_reply": decision.get("reply", "")}
     if action == "reject":
         return {"decision": "rejected", "final_label": None, "final_duplicates": [],
-                "final_reply": ""}
+                "final_fixes": [], "final_reply": ""}
     raise ValueError(f"invalid review decision: {decision!r}")
 
 
@@ -136,7 +144,8 @@ def post(state: TriageState) -> dict:
     reply = state.get("final_reply", "")
     if reply:
         # Re-check what is actually being posted (the reviewer may have edited it).
-        for problem in check_reply(reply, state.get("final_duplicates", [])):
+        allowed = state.get("final_duplicates", []) + state.get("final_fixes", [])
+        for problem in check_reply(reply, allowed):
             print(f"[warning] reply {problem}")
         print(f"[dry run] would comment:\n{reply}")
     return {}
@@ -149,11 +158,12 @@ def after_review(state: TriageState) -> str:
 
 # ------ Graph ------ #
 
-def build_graph(with_review=False, checkpointer=None, finder=None, drafter=None):
+def build_graph(with_review=False, checkpointer=None, finder=None, drafter=None,
+                investigator=None):
     """with_review=False: label only (what the labeler evals measure; no pause).
-    with_review=True: label + find_duplicates (in parallel) -> draft_reply -> review
-    -> post; needs a checkpointer, a Duplicate Finder (make_finder) and a drafter
-    (make_drafter)."""
+    with_review=True: label + find_duplicates (+ investigate, if an Investigator is
+    given) in parallel -> draft_reply -> review -> post; needs a checkpointer, a
+    Duplicate Finder (make_finder) and a drafter (make_drafter)."""
     builder = StateGraph(TriageState)
     builder.add_node("label_issue", label_issue)
     builder.add_edge(START, "label_issue")
@@ -169,12 +179,23 @@ def build_graph(with_review=False, checkpointer=None, finder=None, drafter=None)
                            "body": state["body"], "created_at": state["created_at"]})
         return {"duplicates": r["duplicates"]}
 
+    def investigate(state: TriageState) -> dict:
+        # Same pattern: the Investigator runs as a subgraph with its own state.
+        r = investigator.invoke({"number": state["number"], "title": state["title"],
+                                 "body": state["body"], "created_at": state["created_at"]})
+        return {"fixes": r["fixed_by"]}
+
     builder.add_node("find_duplicates", find_duplicates)
     builder.add_node("draft_reply", drafter)
     builder.add_node("review", review)
     builder.add_node("post", post)
-    builder.add_edge(START, "find_duplicates")                    # fan out: both start at once
-    builder.add_edge(["label_issue", "find_duplicates"], "draft_reply")  # fan in: waits for both
+    builder.add_edge(START, "find_duplicates")                    # fan out: all start at once
+    branches = ["label_issue", "find_duplicates"]
+    if investigator is not None:
+        builder.add_node("investigate", investigate)
+        builder.add_edge(START, "investigate")
+        branches.append("investigate")
+    builder.add_edge(branches, "draft_reply")                     # fan in: waits for all
     builder.add_edge("draft_reply", "review")
     builder.add_conditional_edges("review", after_review, ["post", END])
     builder.add_edge("post", END)
@@ -218,11 +239,12 @@ def cmd_run(graph, conn, number):
     if "__interrupt__" in result:
         flags = f", {len(result['draft_problems'])} flag(s) on the draft" if result["draft_problems"] else ""
         print(f"#{number} {title!r}: proposed '{result['label']}', "
-              f"duplicates {result['duplicates'] or 'none'}{flags}, waiting for review.")
+              f"duplicates {result['duplicates'] or 'none'}, "
+              f"possible fixes {result.get('fixes') or 'none'}{flags}, waiting for review.")
         print(f"  python -m triage.graph review {number}")
 
 
-def ask_decision(label, duplicates, draft):
+def ask_decision(label, duplicates, draft, fixes=()):
     while True:
         answer = input("[a]pprove, [e]dit, [r]eject? ").strip().lower()
         if answer == "a":
@@ -232,6 +254,7 @@ def ask_decision(label, duplicates, draft):
         if answer == "e":
             return {"action": "edit", "label": ask_label(label),
                     "duplicates": ask_duplicates(duplicates),
+                    "fixes": ask_duplicates(list(fixes), what="possible fixes (PR numbers"),
                     "reply": ask_reply(draft)}
 
 
@@ -252,10 +275,10 @@ def ask_label(current):
         print("not one of the four labels")
 
 
-def ask_duplicates(current):
+def ask_duplicates(current, what="duplicates (issue numbers"):
     shown = ", ".join(map(str, current)) or "none"
     while True:
-        raw = input(f"duplicates (issue numbers, comma-separated; '-' for none; Enter keeps {shown}): ").strip()
+        raw = input(f"{what}, comma-separated; '-' for none; Enter keeps {shown}): ").strip()
         if not raw:
             return current
         if raw == "-":
@@ -281,20 +304,28 @@ def cmd_review(graph, conn, number):
         print(f"  possible duplicate: #{n} {row[0] if row else ''!r}")
     if not proposal["proposed_duplicates"]:
         print("  possible duplicates: none")
+    for n in proposal.get("proposed_fixes") or []:
+        row = conn.execute("SELECT title, merged_at FROM pull_requests WHERE repo = %s AND pr_number = %s",
+                           (REPO, n)).fetchone()
+        print(f"  possible fix: PR #{n} {row[0] if row else ''!r} (merged {row[1]:%Y-%m-%d})" if row
+              else f"  possible fix: PR #{n}")
+    if not proposal.get("proposed_fixes"):
+        print("  possible fixes: none")
     print("  draft reply:\n    " + (proposal["draft"] or "(none)").replace("\n", "\n    "))
     for problem in proposal["draft_problems"]:
         print(f"  [check] draft {problem}")
     decision = ask_decision(proposal["proposed_label"], proposal["proposed_duplicates"],
-                            proposal["draft"])
+                            proposal["draft"], proposal.get("proposed_fixes") or [])
 
     result = graph.invoke(Command(resume=decision),
                           {**config, "run_name": f"review #{number}"})
     print(f"#{number}: {result['decision']} -> {result['final_label']}, "
           f"duplicates {result['final_duplicates'] or 'none'}, "
+          f"fixes {result.get('final_fixes') or 'none'}, "
           f"reply {'yes' if result['final_reply'] else 'none'}")
 
 
-def main(index_factory=None):
+def main(index_factory=None, fix_index_factory=None):
     p = argparse.ArgumentParser()
     p.add_argument("command", choices=["run", "review"])
     p.add_argument("number", type=int, help="uv issue number, e.g. 19540")
@@ -311,8 +342,14 @@ def main(index_factory=None):
             index = VectorIndex(conn, REPO)
         else:
             index = index_factory(conn)
+        if fix_index_factory is None:
+            from retrieval.fix_index import FixIndex   # reuses the loaded embedding model
+            fix_index = FixIndex(conn, REPO, INDEX_VARIANT, index.model)
+        else:
+            fix_index = fix_index_factory(conn)
         graph = build_graph(with_review=True, checkpointer=checkpointer,
-                            finder=make_finder(conn, index), drafter=make_drafter(conn))
+                            finder=make_finder(conn, index), drafter=make_drafter(conn),
+                            investigator=make_investigator(conn, fix_index))
         if args.command == "run":
             cmd_run(graph, conn, args.number)
         else:
