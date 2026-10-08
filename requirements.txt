@@ -12,3 +12,4 @@ langchain-groq
 langfuse
 langgraph-checkpoint-postgres
 deepeval
+streamlit==1.65.0

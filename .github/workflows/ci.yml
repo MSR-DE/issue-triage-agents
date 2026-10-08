@@ -1,8 +1,6 @@
-# Every push and pull request: lint + unit tests.
+# Runs on every push and pull request: lint + unit tests.
 # The tests use a scripted fake Groq API and in-memory data, so CI needs no secrets,
 # no database and no tokens.
-# Pushes to main that pass the tests: upload the live demo to its Hugging Face Space
-# (skipped until the HF_TOKEN secret and HF_SPACE variable are set in the repo settings).
 name: CI
 
 on:
@@ -24,20 +22,3 @@ jobs:
         run: ruff check ingestion retrieval evals triage tests demo deploy
       - name: Tests (pytest)
         run: pytest -q
-
-  deploy:
-    needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    concurrency: space-deploy          # one upload at a time
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-      - run: pip install huggingface_hub==1.33.0 python-dotenv
-      - name: Upload the demo to the Hugging Face Space
-        run: python -m deploy.push_space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE: ${{ vars.HF_SPACE }}

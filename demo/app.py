@@ -2,13 +2,15 @@
 
     streamlit run demo/app.py            # local; uses DEMO_DATABASE_URL (Neon) if set in .env
 
-On Hugging Face Spaces this file is app.py, with DATABASE_URL (Neon) and GROQ_API_KEY as
-secrets. Nothing is ever posted to GitHub: the last step shows what *would* be posted.
+Not hosted for now. To host it for free later: Streamlit Community Cloud (sign in with
+GitHub, entrypoint demo/app.py, secrets DATABASE_URL = the Neon URL and GROQ_API_KEY; it
+installs demo/requirements.txt). Nothing is ever posted to GitHub: the last step shows what
+*would* be posted.
 
 Token budget: the Groq free tier is shared with the evals, so live runs are capped per day
 (DAILY_LIVE_RUNS). A triaged issue stays paused in the Postgres checkpointer, so the next
 visitor who picks it sees the saved result for free, and every review decision runs on
-its own fork of that saved pause (see decide()).
+its own fork of that saved pause (see triage.graph.resume_from_pause).
 """
 import os
 import sys
