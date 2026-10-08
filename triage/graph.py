@@ -202,6 +202,32 @@ def build_graph(with_review=False, checkpointer=None, finder=None, drafter=None,
     return builder.compile(checkpointer=checkpointer)
 
 
+# ------ Saved pauses (used by the live demo) ------ #
+
+def find_pause(graph, thread):
+    """(proposal, checkpoint_id) of the review pause saved for this thread, or (None, None).
+    Looks through the whole history, so it still finds the pause after decisions were made."""
+    for snap in graph.get_state_history({"configurable": {"thread_id": thread}}):
+        for task in snap.tasks:
+            if task.interrupts:
+                return task.interrupts[0].value, snap.config["configurable"]["checkpoint_id"]
+    return None, None
+
+
+def resume_from_pause(graph, thread, checkpoint_id, decision, config=None):
+    """Resume a saved review pause with a decision, on a fresh fork of that pause.
+
+    Resuming the same checkpoint twice silently replays the first decision: LangGraph
+    reuses the writes it saved there. So each decision first branches a new checkpoint
+    off the pause (as if draft_reply had just finished) and resumes that one. The pause
+    itself stays untouched, so it can be decided again (another demo visitor, a re-review)."""
+    pause = {"configurable": {"thread_id": thread, "checkpoint_ns": "",
+                              "checkpoint_id": checkpoint_id}}
+    fork = graph.update_state(pause, None, as_node="draft_reply")
+    return graph.invoke(Command(resume=decision),
+                        {**(config or {}), "configurable": fork["configurable"]})
+
+
 # ------ CLI ------ #
 
 def load_issue(conn, number):

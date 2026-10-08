@@ -10,7 +10,6 @@ is committed, so Ctrl+C and re-run continues where it stopped.
 Run: python -m retrieval.embed
 """
 from pgvector.psycopg import register_vector
-from sentence_transformers import SentenceTransformer
 
 from evals.dataset import REPO
 from ingestion.db import get_db_connection
@@ -37,6 +36,8 @@ VALUES (%s, %s, %s, %s)
 
 
 def main():
+    # Imported here, not at the top: importing MODEL_NAME (the agents, the tests) shouldn't load torch.
+    from sentence_transformers import SentenceTransformer
     model = SentenceTransformer(MODEL_NAME)
     with get_db_connection() as conn:
         register_vector(conn)    # teaches psycopg to send numpy arrays as pgvector values

@@ -1,0 +1,21 @@
+# Packages for the live demo (Hugging Face Space), pinned to the versions the project was
+# built and tested with. torch is installed before these by the Dockerfile, CPU-only: the
+# default Linux wheel brings ~2 GB of CUDA libraries a CPU Space can't use.
+streamlit==1.65.0
+python-dotenv==1.2.4
+psycopg[binary]==3.3.6
+psycopg-pool==3.3.3
+pgvector==0.5.0
+numpy==2.5.3
+groq==0.37.1
+langchain==1.4.3
+langchain-core==1.6.6
+langchain-groq==1.1.3
+langgraph==1.2.12
+langgraph-checkpoint==4.2.0
+langgraph-checkpoint-postgres==3.1.2
+langfuse==4.17.0
+snowballstemmer==3.1.1
+requests==2.34.2
+sentence-transformers==6.1.0
+transformers==5.18.0
