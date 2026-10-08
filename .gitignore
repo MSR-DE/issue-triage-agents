@@ -14,3 +14,5 @@ show_examples.py
 check_chatgroq.py
 q*.sql
 check_dups.py
+.pytest_cache/
+.ruff_cache/

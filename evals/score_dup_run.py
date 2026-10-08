@@ -10,11 +10,11 @@ search never can). Plus invented numbers, rounds, tokens.
 """
 import sys
 from collections import Counter
-from math import comb
 
 from ingestion.db import get_db_connection
 from evals.dataset import REPO
 from evals.dup_dataset import accepted, load_clusters, load_dup_set
+from evals.stats import mcnemar
 from retrieval.lookup import search_candidates
 from retrieval.text import issue_text
 
@@ -25,13 +25,6 @@ SELECT issue_number, split, returned, invented, rounds, queries, reads,
        prompt_tokens, completion_tokens, error
 FROM dup_eval_results WHERE run_id = %s
 """
-
-
-def mcnemar(fixed, broke):
-    n = len(fixed) + len(broke)
-    if not n:
-        return 1.0
-    return min(1.0, 2 * sum(comb(n, i) for i in range(min(len(fixed), len(broke)) + 1)) / 2 ** n)
 
 
 def main(run_id, index_factory=None):

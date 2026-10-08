@@ -19,13 +19,12 @@ from pathlib import Path
 
 from ingestion.db import get_db_connection          # also loads .env  # noqa: F401
 
-from langchain_groq import ChatGroq
 
 from evals.injection_attacks import ATTACKS
 from evals.labeler import LABELS
 from triage.checks import check_reply
 from triage.drafter import make_llm, write_draft
-from triage.graph import labeler as label_model, label_issue
+from triage.graph import label_issue
 
 OUT = Path("results/injection_eval.csv")
 SLEEP = 8.0     # 120b free tier: 8K tokens/minute

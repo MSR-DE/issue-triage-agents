@@ -1,0 +1,15 @@
+# What CI needs to run the tests: no embedding model, no database server, no API keys.
+# (The full app uses requirements.txt.)
+pytest
+ruff
+psycopg[binary]
+python-dotenv
+requests
+snowballstemmer
+pgvector
+groq
+httpx
+langgraph
+langchain
+langchain-groq
+langfuse

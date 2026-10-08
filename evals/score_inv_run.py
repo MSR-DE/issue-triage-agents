@@ -13,25 +13,14 @@ rates come with Wilson 95% intervals: report the range, not just the point.
 """
 import sys
 from collections import Counter
-from math import sqrt
 
 from ingestion.db import get_db_connection
 from evals.dataset import REPO
 from evals.fix_dataset import load_fix_set
-from evals.score_dup_run import mcnemar
+from evals.stats import ci, mcnemar
 from retrieval.fix_lookup import reported_version, search_fix_candidates
 from retrieval.text import issue_text
 from triage.investigator import QUERY_BODY_CHARS, make_index, search_since
-
-def ci(k, n):
-    """'k/n = p% (95% CI lo-hi%)', Wilson score interval (sane at small n and at 0 or n)."""
-    if not n:
-        return "0/0"
-    z, p = 1.96, k / n
-    mid = (p + z * z / (2 * n)) / (1 + z * z / n)
-    half = z * sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
-    return f"{k}/{n} = {p:.0%} (95% CI {max(0, mid - half):.0%}-{min(1, mid + half):.0%})"
-
 
 ROWS = """
 SELECT issue_number, split, returned, invented, rounds, queries, reads,

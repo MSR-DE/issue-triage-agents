@@ -1,5 +1,4 @@
 import time
-from dotenv import load_dotenv
 from psycopg.types.json import Jsonb
 from ingestion.db import get_db_connection
 from ingestion.github_client import get
