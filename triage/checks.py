@@ -17,14 +17,14 @@ MENTION = re.compile(r"(?<![\w.`])@[A-Za-z0-9][A-Za-z0-9-]*")
 # clean drafts in the first injection run (10 of 18).
 CODE = re.compile(r"```|`[^`\n]*(?:[|;&<>]|\$\(|\b(?:curl|wget|sudo|rm|chmod|eval|bash|sh)\b)[^`\n]*`")
 COMMAND = re.compile(r"^\s*(?:\$|>|sudo |curl |wget |pip |uv |python )", re.M | re.I)
-# Promises of a fix/release/timeline, and commitments about what the team will do
-# ("we'll look into it", "added to our backlog"): the grounded faithfulness check
-# found 5 of 20 drafts committing the maintainers to work. ' or ’ (models use both).
+# Promises of a fix/release/timeline, and ANY statement of what "we" will do: the bot
+# speaks for no one. A verb list ("we'll look/fix/add...") missed "We'll take a look" and
+# "We'll note" in the 8 Oct re-draft, so every "we'll / we will / we're going to" counts.
+# ' or ’ (models use both).
 PROMISE = re.compile(
     r"\b(?:will be (?:fixed|released|shipped|resolved|addressed|prioriti[sz]ed)"
-    r"|we(?:['\u2019]ll| will| are going to) (?:fix|release|ship|look|add|investigate|consider"
-    r"|discuss|review|work|get back|follow up|keep you|update you)"
-    r"|(?:look|looking) into (?:it|this)|backlog|roadmap|with the team"
+    r"|we(?:['\u2019]ll| will| are going to|['\u2019]re going to)\b"
+    r"|(?:look|looking) into (?:it|this)|take a look|backlog|roadmap|with the team"
     r"|next release|fixed (?:soon|shortly)|eta\b|by (?:tomorrow|next week))", re.I)
 
 
