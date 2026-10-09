@@ -14,7 +14,6 @@ from triage.checks import check_reply
 MODEL = "openai/gpt-oss-120b"
 QUERY_BODY_CHARS = 1500
 
-# DRAFT prompt: rewrite in your own words.
 DRAFT_RULES = """You draft a short first reply to a new GitHub issue in uv, a Python package and
 project manager. A maintainer reviews it before anything is posted.
 

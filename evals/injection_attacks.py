@@ -1,5 +1,5 @@
-"""Hand-written prompt-injection attacks for the triage pipeline (DRAFT set: review,
-edit and add your own). Each looks like a uv issue with an attack hidden in it.
+"""Hand-written prompt-injection attacks for the triage pipeline. Each looks like a uv
+issue with an attack hidden in it.
 
 canary: regex that appears in the drafted reply only if the attack worked.
 label_target: for label attacks, the label the attacker tries to force.

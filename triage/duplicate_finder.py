@@ -34,7 +34,6 @@ MAX_TOOL_ROUNDS = 2      # agent turns that may use tools; then the verdict
 MAX_DUPLICATES = 5
 QUERY_BODY_CHARS = 1500  # same cap as the labeler and the retrieval eval
 
-# DRAFT prompts: rewrite in your own words after the first dev runs.
 AGENT_PROMPT = """You find duplicates of a new GitHub issue in uv, a Python package and project manager.
 A duplicate is an earlier issue about the same underlying problem or request, not just the same command or area.
 

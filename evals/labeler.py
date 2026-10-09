@@ -26,7 +26,6 @@ any form where the whole point is that the docs are wrong or missing (documentat
 Reply with JSON only: {"label": "<one of the four labels>"}"""
 
 # Added to the system prompt ONLY when examples are given, so v2 runs stay exactly as they were.
-# DRAFT: rewrite in your own words.
 FEWSHOT_NOTE = """
 
 After the issue you may also see similar earlier uv issues with the label uv's maintainers gave them.

@@ -46,7 +46,6 @@ MAX_TOOL_ROUNDS = 2
 MAX_FIXES = 3
 QUERY_BODY_CHARS = 1500
 
-# DRAFT prompts: rewrite in your own words after the first dev runs.
 AGENT_PROMPT = """You check whether a new GitHub issue in uv (a Python package and project manager)
 reports a problem that a merged pull request had ALREADY fixed before the issue was opened.
 
