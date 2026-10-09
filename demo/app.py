@@ -45,7 +45,7 @@ from triage.investigator import INDEX_VARIANT, make_investigator  # noqa: E402
 
 DAILY_LIMIT = int(os.getenv("DAILY_LIVE_RUNS", "5"))   # ~8.5K gpt-oss-20b tokens per live run
 GITHUB = f"https://github.com/{REPO}"
-CODE = "https://github.com/MSR-DE/issue-triage-agents"
+CODE = "https://github.com/MSR-DE/multi-agent-issue-triage"
 
 SETUP_SQL = """
 CREATE TABLE IF NOT EXISTS demo_usage (day date PRIMARY KEY, runs integer NOT NULL);

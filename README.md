@@ -1,6 +1,6 @@
-# Issue triage agents for astral-sh/uv
+# Multi-agent issue triage for astral-sh/uv
 
-![CI](https://github.com/MSR-DE/issue-triage-agents/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/MSR-DE/multi-agent-issue-triage/actions/workflows/ci.yml/badge.svg)
 
 A new GitHub issue goes through three steps in parallel: a **labeler**, a **Duplicate Finder**
 agent that searches earlier issues, and an **Investigator** agent that checks whether a merged
