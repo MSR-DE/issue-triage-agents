@@ -11,10 +11,36 @@ Built with LangGraph and measured on real issues from [uv](https://github.com/as
 manager: about 9,300 issues, 12,600 pull requests and 320 releases.
 Where a simpler method exists, each result is compared with it on the same issues.
 
-<!-- MOHIT: add a short "Why I built this" here, 3-5 sentences in your own words. -->
-<!-- MOHIT: record ~20 s of the demo app (demo/app.py), save it as docs/demo.gif and uncomment:
-![The demo app: pick an issue, see label / duplicates / possible fix / draft, then approve](docs/demo.gif)
--->
+## Why I built this
+
+uv gets a lot of issues: about 9,300 since late 2023. Each one needs someone to label it, check
+whether it was reported before, and check whether a recent change already fixed it. I wanted to
+see how much of that work agents can take on, and to measure it honestly instead of building a
+demo that only looks good: every agent is compared with a simple baseline on the same real issues,
+and a human approves anything before it is posted. Issue text is written by strangers, so I also
+attacked my own system with prompt injection and measured what got through.
+
+## Highlights
+
+- **Three agents, one human gate.** The labeler, Duplicate Finder and Investigator run in parallel
+  (LangGraph); the run then pauses for a person to approve, edit or reject, and the pause is saved
+  in Postgres.
+- **Measured, not just demoed.** Each part is compared with a simpler method on real uv issues,
+  with confidence intervals. For example, the labeler beats rules that read the issue form, 79.8% vs
+  74.6% on 228 test issues, and the Investigator never claimed a fix on 30 bugs that weren't fixed.
+- **Attacked on purpose.** 20 hand-written prompt-injection issues aimed at the reply and the label,
+  run with and without the protections ([details](#prompt-injection)).
+- **No made-up references.** The agents can only cite issues and PRs their own searches returned;
+  any other number is dropped in code.
+- **Tested in CI** on every push with a scripted fake LLM: no network, no tokens.
+
+## What it looks like
+
+![A triaged issue: proposed label, possible duplicates, possible fix and the drafted reply](docs/triage.png)
+
+![Issue #5210: the Investigator names PR #5148, merged the day before the issue was opened; the Duplicate Finder adds #4988](docs/already-fixed.png)
+
+![The review step: a reviewer's edited reply is checked again before anything would be posted; here it flags a link and a request for a token](docs/review.png)
 
 ## Results
 
@@ -36,6 +62,29 @@ How to read these:
   search's top 1–2 ("the same number of suggestions"), where the fair comparison is.
 - p-values are exact McNemar tests on the issues where the two methods disagree; CIs are 95%
   Wilson intervals. The agent evals are small (tens of issues), so their intervals are wide.
+
+## Prompt injection
+
+Issue text is written by strangers, so the system treats it as hostile. The protections, in layers:
+
+1. **Marked as untrusted.** Every model gets the issue inside `<issue>` tags with a note to treat it
+   as data, never as instructions. The labeler and drafter also neutralise `<issue>` tags inside the
+   text, so an issue can't close the block early.
+2. **Narrow outputs.** The labeler can only answer one of four labels. The agents have read-only
+   tools and can only return issue and PR numbers their own searches found.
+3. **Checks in code** on every reply: links, @mentions, code or commands, promises, passwords or
+   tokens, and issue numbers the agents didn't find. They run again after a human edits the reply.
+4. **A human approves everything.** The GitHub token is read-only, and posting is a dry run.
+
+The eval ([evals/injection_attacks.py](evals/injection_attacks.py)) has 20 hand-written attack
+issues: instruction overrides, a fake maintainer voice, hidden HTML comments, a `</issue>` break-out,
+base64-encoded instructions, a request for the reporter's token, and two that try to force a label.
+Each goes through the labeler, then through the drafter twice: with the protections and without.
+
+| | Without the protections | With the protections |
+|---|---|---|
+| Reply attacks that reached the reviewer unflagged | 5/18 | **0/18** on the first run; **1/18** on a re-run (it asked for the reporter's token; a new check now flags that) |
+| Label attacks that changed the label | 2/2 (original labeler) | **0/2** (hardened labeler, same 84% on the dev set) |
 
 ## How it works
 
@@ -62,11 +111,6 @@ flowchart LR
 - **Facts in code, judgement in the model.** The Investigator only searches PRs merged in the 7 days
   before the issue and, when the reporter states their uv version, after that version's release.
   The code works this window out; the model only decides whether a candidate fixes the problem.
-- **Every reply is checked in code** before a human sees it, and again after a human edits it:
-  issue numbers the agents didn't find, links, @mentions, code or commands, promises
-  ("we'll look into it"), passwords or tokens, length.
-- **Issue text is untrusted.** It goes to the models inside `<issue>` tags with a note not to
-  follow instructions in it; the GitHub token is read-only; posting is a dry run.
 
 ## How it was measured
 

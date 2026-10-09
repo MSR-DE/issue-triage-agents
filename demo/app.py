@@ -146,6 +146,24 @@ def details(proposal):
     return dups, prs
 
 
+def edits(proposal, result):
+    """What the reviewer changed compared with the agents' proposal, in words."""
+    changes = []
+    if result["final_label"] != proposal["proposed_label"]:
+        changes.append(f"label {proposal['proposed_label']} → {result['final_label']}")
+    for name, before, after in (("duplicates", proposal["proposed_duplicates"], result["final_duplicates"]),
+                                ("fixes", proposal["proposed_fixes"], result["final_fixes"])):
+        added = [n for n in after if n not in before]
+        removed = [n for n in before if n not in after]
+        if added:
+            changes.append(f"{name} added by you: " + ", ".join(f"#{n}" for n in added))
+        if removed:
+            changes.append(f"{name} removed: " + ", ".join(f"#{n}" for n in removed))
+    if result["final_reply"] != proposal["draft"]:
+        changes.append("reply rewritten")
+    return changes
+
+
 def parse_numbers(text):
     return [int(x.strip().lstrip("#")) for x in text.split(",") if x.strip().lstrip("#").isdigit()]
 
@@ -163,14 +181,18 @@ with st.sidebar:
         "1. **Labeler**: bug / enhancement / question / documentation\n"
         "2. **Duplicate Finder** agent: searches earlier issues\n"
         "3. **Investigator** agent: was it *already fixed* by a merged PR?\n\n"
-        "Code checks every draft (links, @mentions, commands, promises). Agents can only "
+        "Code checks every draft (links, @mentions, commands, promises, passwords or tokens). "
+        "Agents can only "
         "cite issues and PRs their own searches returned.")
     st.header("Measured on real uv issues")
     st.markdown(
         "- Labeler: **79.8%** vs 74.6% for rules (228 issues)\n"
         "- Embedding search: **55%** duplicate recall@5 vs 33% for keyword search (347 duplicates)\n"
+        "- Duplicate Finder: as many originals as search with **1.3** suggestions instead of 5; "
+        "**57%** of them right vs 17%\n"
         "- Already-fixed: never claimed a fix on **30/30** unfixed bugs\n"
-        "- Prompt injection: **0/18** reply attacks got through\n")
+        "- Prompt injection: 0/18 reply attacks got through, then **1/18** on a re-run "
+        "(asked for a token); a new check now flags it\n")
     st.markdown(f"[Code, evals and write-up]({CODE})")
 
 st.title("🔧 uv issue triage, live")
@@ -182,7 +204,8 @@ with psycopg.connect(DATABASE_URL, autocommit=True) as c:
     used = c.execute(RUNS_TODAY).fetchone()[0]
 
 PASTE = "✏️  Paste your own issue"
-choice = st.selectbox("Issue", [PASTE] + [f"#{n} {t}" for n, t in recent], index=1)
+BY_NUMBER = "🔢  Any uv issue, by number"
+choice = st.selectbox("Issue", [PASTE, BY_NUMBER] + [f"#{n} {t}" for n, t in recent], index=2)
 
 if choice == PASTE:
     title = st.text_input("Title", max_chars=200)
@@ -192,11 +215,19 @@ if choice == PASTE:
              "created_at": datetime.now(timezone.utc),
              "thread": f"demo:paste:{st.session_state.paste_id}:{hash((title, body))}"}
 else:
-    number = int(choice.split()[0][1:])
+    if choice == BY_NUMBER:   # e.g. 5210: the Investigator finds the PR that already fixed it
+        number = int(st.number_input("uv issue number", min_value=1, step=1, value=5210))
+    else:
+        number = int(choice.split()[0][1:])
     with psycopg.connect(DATABASE_URL, autocommit=True) as c:
-        title, body, created = c.execute(
+        row = c.execute(
             "SELECT title, body, created_at FROM issues WHERE repo = %s AND issue_number = %s",
             (REPO, number)).fetchone()
+    if row is None:
+        st.warning(f"#{number} isn't in the demo data (it may be a pull request, or newer "
+                   "than the data).")
+        st.stop()
+    title, body, created = row
     issue = {"number": number, "title": title, "body": body or "", "created_at": created,
              "thread": f"demo:{REPO}#{number}"}
     with st.expander(f"Issue #{number} as it was opened ({created:%Y-%m-%d})"):
@@ -279,6 +310,8 @@ if result:
     if result.get("decision") == "rejected":
         st.markdown("Rejected: nothing would be posted.")
     else:
+        if result.get("decision") == "edited":    # show every change, so none goes unnoticed
+            st.info("Your edits: " + ("; ".join(edits(proposal, result)) or "none"))
         where = f"#{issue['number']}" if issue["number"] else "the issue"
         st.markdown(f"Would add label **{result['final_label']}** to {where}.")
         reply = result.get("final_reply", "")
