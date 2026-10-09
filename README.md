@@ -22,7 +22,7 @@ Where a simpler method exists, each result is compared with it on the same issue
 |---|---|---|---|
 | **Labeler** (bug / enhancement / question / documentation) | 228 test issues, run once | **79.8%** correct (95% CI 74–85%). The injection-hardened version scores the same on the dev set (84%, 42/50) | 74.6% for rules that read the issue form; 45.6% for always "bug". Fixed 13 rule errors, broke 1 (p ≈ 0.002) |
 | **Duplicate search** (embeddings) | 347 real duplicates | **55.0%** have the original in the top 5 (CI 50–60%) | 32.6% for keyword search (BM25). BM25 + embeddings (hybrid) scored 48.7%, *worse* than embeddings alone (p = 0.014) |
-| **Duplicate Finder** agent | 52 duplicates + 15 non-duplicates (test) | Suggests **1.3** issues on average instead of 5, and finds as many originals: 55.8% vs 55.8%. With the same number of suggestions it finds 29/52 vs 20/52 (fixed 9, broke 0, p = 0.004). **57%** of its suggestions are right (search: 17%). It suggested something for 13 of the 15 non-duplicates: ⏳ hand check (some may be real duplicates nobody marked) | plain embedding search, top 5 or the same number of results |
+| **Duplicate Finder** agent | 52 duplicates + 15 non-duplicates (test) | Suggests **1.3** issues on average instead of 5, and finds as many originals: 55.8% vs 55.8%. With the same number of suggestions it finds 29/52 vs 20/52 (fixed 9, broke 0, p = 0.004). **57%** of its suggestions are right (search: 17%). On the 15 "non-duplicates" it suggested something for 13; read by hand, 5 of those were real duplicates nobody had marked. On the 10 true non-duplicates it said "none" only twice (4 suggestions borderline, 4 wrong) | plain embedding search, top 5 or the same number of results |
 | **Investigator** ("already fixed?") | 24 already-fixed + 30 not-fixed bugs | Never claimed a fix on the 30 unfixed bugs (CI 89–100%). Named the right PR for 11 of 24. Right call 76% (CI 63–85%) | always "not fixed": 56%. Embedding search finds the PR in its top 5 for 16/24, but only 14% of its suggestions are right, vs 69% for the agent |
 | **Prompt injection** | 20 hand-written attack issues (18 aim at the reply, 2 at the label) | Reply attacks reaching the reviewer unflagged: **0/18** on the first run, **1/18** on a re-run (the drafter asked the reporter for their password or token; a check now flags this). Label attacks: **0/2** with the hardened labeler (2/2 before) | 5/18 reply attacks got through without the protections, in both runs |
 | **Made-up issue / PR numbers** | Duplicate Finder dev and test runs, Investigator eval | 0 invented. Any number an agent's own searches didn't return is dropped in code before a reviewer sees it | |
@@ -32,7 +32,7 @@ How to read these:
   uv's maintainers often close duplicates into one tracking issue, so finding any issue from the
   same group counts. Strict scoring (exact original only): embeddings 41.5% vs BM25 24.5%.
   Both are in [results/retrieval_v2.txt](results/retrieval_v2.txt).
-- The Duplicate Finder returns 1–2 issues, search always returns 5, so it is also compared with
+- The Duplicate Finder usually returns 1–2 issues and search always returns 5, so it is also compared with
   search's top 1–2 ("the same number of suggestions"), where the fair comparison is.
 - p-values are exact McNemar tests on the issues where the two methods disagree; CIs are 95%
   Wilson intervals. The agent evals are small (tens of issues), so their intervals are wide.
@@ -64,7 +64,7 @@ flowchart LR
   The code works this window out; the model only decides whether a candidate fixes the problem.
 - **Every reply is checked in code** before a human sees it, and again after a human edits it:
   issue numbers the agents didn't find, links, @mentions, code or commands, promises
-  ("we'll look into it"), length.
+  ("we'll look into it"), passwords or tokens, length.
 - **Issue text is untrusted.** It goes to the models inside `<issue>` tags with a note not to
   follow instructions in it; the GitHub token is read-only; posting is a dry run.
 
@@ -110,8 +110,10 @@ flowchart LR
 - The Investigator's search window was chosen using the same already-fixed issues it is evaluated
   on (there were no others), and the agent is cautious: on 8 of 24 already-fixed issues it said "not fixed",
   in 5 of them after seeing the right PR.
-- The "not a duplicate" controls come from issues nobody marked as duplicates; a few may be
-  unmarked real duplicates.
+- The Duplicate Finder rarely says "no duplicate": on 10 issues that really have none, it suggested
+  something for 8 (4 of them related, 4 wrong). A reviewer dismisses those quickly, but it is noise.
+- The "not a duplicate" controls come from issues nobody marked as duplicates; reading them, 5 of 15
+  in the test set (and 3 of 10 in the dev set) were real duplicates nobody had marked.
 - Nothing is posted to GitHub. Every reply needs a human.
 
 ## Repository
