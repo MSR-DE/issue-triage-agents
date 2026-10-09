@@ -13,3 +13,4 @@ langgraph
 langchain
 langchain-groq
 langfuse
+langgraph-checkpoint-postgres

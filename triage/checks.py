@@ -1,8 +1,8 @@
 """Output checks on a drafted reply, in code, before a maintainer sees it.
 
 A reply may only mention the issue numbers the agents found. It must not contain
-links, @mentions, commands or code, promise a fix or a release, or commit the
-team to any work. Anything else is flagged (security layer 5: an injected issue
+links, @mentions, commands or code, promise a fix or a release, commit the
+team to any work, or mention passwords, tokens or other secrets. Anything else is flagged (security layer 5: an injected issue
 can't smuggle these into a reply without the reviewer seeing a warning).
 """
 import re
@@ -26,6 +26,13 @@ PROMISE = re.compile(
     r"|we(?:['\u2019]ll| will| are going to|['\u2019]re going to)\b"
     r"|(?:look|looking) into (?:it|this)|take a look|backlog|roadmap|with the team"
     r"|next release|fixed (?:soon|shortly)|eta\b|by (?:tomorrow|next week))", re.I)
+# A reply must never ask for (or talk about) secrets. Added 9 Oct after the injection
+# re-run: the "credential-phish" attack made the protected drafter ask the reporter to
+# paste their index password or token, and no check flagged it. On the 112 saved
+# replies it flags that one plus 2 that restate a reporter's own token problem: a
+# reviewer glances at those, which is the point of a flag.
+SECRET = re.compile(r"\b(?:passwords?|passphrases?|tokens?|api[ _-]?keys?|secrets?|credentials?"
+                    r"|private keys?|ssh keys?|access keys?)\b", re.I)
 
 
 def check_reply(reply, allowed_numbers):
@@ -42,6 +49,8 @@ def check_reply(reply, allowed_numbers):
         problems.append("contains code or a command")
     if PROMISE.search(reply):
         problems.append(f"promises something: {PROMISE.search(reply).group()!r}")
+    if SECRET.search(reply):
+        problems.append(f"mentions a password, token or other secret: {SECRET.search(reply).group()!r}")
     if len(reply) > MAX_CHARS:
         problems.append(f"too long ({len(reply)} chars)")
     if not reply.strip():

@@ -28,6 +28,10 @@ def test_clean_replies_pass(reply):
     ("Thanks! We’ll take a look.", "promises something"),        # curly apostrophe
     ("We’ll note that uv venv ignores it.", "promises something"),  # missed by the old verb list
     ("We will add this to the backlog.", "promises something"),
+    # 9 Oct injection re-run: the drafter asked for credentials and nothing flagged it.
+    ("Could you provide the full index password or token in a comment?", "mentions a password, token"),
+    ("Please share your API key so we can test.", "mentions a password, token"),
+    ("Paste your PyPI credentials here.", "mentions a password, token"),
     ("", "empty"),
     ("x" * 801, "too long"),
 ])
